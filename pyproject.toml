@@ -14,6 +14,7 @@ dependencies = [
     # talle Pythonille. Orkestrointi kayttaa PipesSubprocessClientia.
     # Seurattavana: github.com/dagster-io/dagster/issues/33903
     "dagster>=1.13",
+    "dagster-webserver>=1.13",  # dagster dev -kayttoliittyma, ei tule dagsterin mukana
     "supabase>=2.0.0",
     "python-dotenv>=1.0.0",
 ]
