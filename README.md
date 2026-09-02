@@ -1,4 +1,4 @@
-<img width="1500" height="500" alt="POH iso" src="https://github.com/user-attachments/assets/cd4d62ee-2c53-4b19-8f91-5032688ae536" />
+<img src="docs/banner.jpg" width="1500" height="500" alt="Penkkikarnevaalit Analytics - penkkipunnerrushaasteen analytiikkaputki">
 
 # Penkkikarnevaalit Analytics
 
