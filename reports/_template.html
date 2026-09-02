@@ -403,9 +403,8 @@
       <div>
         <h2>Kaikki nostot</h2>
         <p class="sub sm" id="lifts-sub">—</p>
-        <p class="sub sm"><span class="pr">PR</span> tarkoittaa nostoa, joka oli
-        ennätys <strong>sillä hetkellä kun se kirjattiin</strong> — ei sitä, että
-        se olisi tekijänsä paras. Vie hiiri merkinnän päälle nähdäksesi mitä se ylitti.</p>
+        <p class="sub sm"><span class="pr">PR</span> on nostajan kaikkien aikojen
+        paras tulos — yksi per nostaja, kuten salikielessä.</p>
       </div>
       <div class="tblwrap liftswrap">
         <table id="lifts-t">
@@ -673,8 +672,16 @@ document.querySelectorAll(".step[data-tip]").forEach(el=>{
 
 /* ---------- nostot ---------- */
 const L=D.workouts||[];
+
+// PR tarkoittaa salikielessa kaikkien aikojen parasta, yksi per nostaja.
+// Putki laskee erikseen myos hetket joina ennatys parani (is_pr), mutta
+// se on eri kasite eika sita nayteta talla nimella.
+const BEST={};
+L.forEach(w=>{ if(!(w.who in BEST) || w.rm>BEST[w.who]) BEST[w.who]=w.rm; });
+const isBest=w=>Math.abs(w.rm-BEST[w.who])<0.001;
+
 document.getElementById("lifts-sub").textContent=
-  `${L.length} nostoa, uusin ensin. ${L.filter(w=>w.pr).length} niistä oli ennätys.`;
+  `${L.length} nostoa, uusin ensin. ${Object.keys(BEST).length} nostajaa.`;
 
 let lkey="sort", ldir=-1;
 function drawLifts(){
@@ -687,9 +694,8 @@ function drawLifts(){
     <td class="name">${w.who}</td>
     <td class="n">${w.reps}</td>
     <td class="n">${fi(w.kg)} kg</td>
-    <td class="n">${fi(w.rm)} kg${w.pr?` <span class="pr" tabindex="0" data-tip="${
-      w.prev==null ? "Ensimmäinen kirjattu nosto — siksi ennätys."
-                   : `Ennätys: ylitti aiemman parhaan ${fi(w.prev)} kg.`}">PR</span>`:''}</td>
+    <td class="n">${fi(w.rm)} kg${isBest(w)?` <span class="pr" tabindex="0" data-tip="${
+      w.who}n kaikkien aikojen paras tulos.">PR</span>`:''}</td>
   </tr>`).join("");
   document.querySelectorAll("#lifts-t thead th").forEach(th=>{
     if(th.dataset.k===lkey) th.dataset.dir = ldir===1?"asc":"desc";
