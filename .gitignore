@@ -31,3 +31,5 @@ reports/haastemittaristo.html
 
 # Henkilokohtaiset muistiinpanot
 reports/DEMO.md
+# Dagster ajon tilatiedot
+.tmp_dagster_home_*/

@@ -1,131 +1,111 @@
 """
-Dagster asset definitions for the Penkkikarnevaalit analytics pipeline.
+Dagster-orkestrointi Penkkikarnevaalit-analytiikalle.
 
-Asset graph:
-  extract_supabase → dbt_models (staging → intermediate → marts)
+    raw_supabase  ->  dbt_models  ->  haastemittaristo
 
-Each asset is observable and materialized independently.
+Kolme assettia ketjussa. Jokainen ajaa oman komentonsa PipesSubprocessClientilla,
+joka on Dagsterin dokumentoitu tapa ajaa työtä tämän prosessin ulkopuolella.
+
+Miksi ei dagster-dbt:
+
+    dagster-dbt antaisi jokaisesta dbt-mallista oman assetin ja dbt-testeistä
+    asset checkit. Se ei kuitenkaan asennu Python 3.14:lle: paketin metadata
+    rajaa `Requires-Python >=3.10,<3.14` (dagster-dbt 0.29.20, 27.8.2026).
+    Rajaus on peräisin ajalta jolloin dbt-core ei tukenut 3.14:ää — dbt-core
+    1.12 tukee sitä nykyään, mutta Dagsterin kattoa ei ole päivitetty.
+    Seurattavana GitHub-issuessa dagster-io/dagster#33903.
+
+    Hinta: dbt-ajo näkyy yhtenä assettina eikä neljänätoista. Riippuvuudet
+    mallien välillä hoitaa dbt itse, joten ajojärjestys on silti oikea.
+
+Ajaminen:
+
+    dagster dev                     käyttöliittymä selaimessa
+    dagster asset materialize --select "*"      koko ketju kerralla
 """
 
-import os
-import subprocess
+import sys
 from pathlib import Path
 
-from dagster import (
-    asset,
-    AssetExecutionContext,
-    MaterializeResult,
-    MetadataValue,
-    Definitions,
-    define_asset_job,
-    ScheduleDefinition,
-    AssetSelection,
-)
-from dagster_dbt import DbtCliResource, dbt_assets, DbtProject
+import dagster as dg
 
-# ---------------------------------------------------------------------------
-# Paths
-# ---------------------------------------------------------------------------
 PROJECT_DIR = Path(__file__).resolve().parent.parent
-DBT_PROJECT_DIR = PROJECT_DIR
-EXTRACT_SCRIPT = PROJECT_DIR / "extract" / "supabase_to_duckdb.py"
-PROFILES_DIR = PROJECT_DIR
 
-# ---------------------------------------------------------------------------
-# dbt project setup
-# ---------------------------------------------------------------------------
-dbt_project = DbtProject(
-    project_dir=DBT_PROJECT_DIR,
-    profiles_dir=PROFILES_DIR,
-)
-
-# Parse the dbt project to generate the manifest
-# (run `dbt parse` or `dbt compile` first, or let Dagster handle it)
-dbt_project.prepare_if_dev()
-
-dbt_resource = DbtCliResource(
-    project_dir=DBT_PROJECT_DIR,
-    profiles_dir=PROFILES_DIR,
-)
+# sys.executable osoittaa siihen Pythoniin joka ajaa Dagsteria. Pelkkä "python"
+# osuisi järjestelmän tulkkiin, jossa ei ole tämän projektin riippuvuuksia.
+PYTHON = sys.executable
+DBT = str(Path(PYTHON).parent / "dbt.exe") if sys.platform == "win32" else "dbt"
 
 
-# ---------------------------------------------------------------------------
-# Asset: Extract from Supabase to DuckDB
-# ---------------------------------------------------------------------------
-@asset(
-    group_name="extract",
+@dg.asset(
+    group_name="penkkikarnevaalit",
     compute_kind="python",
-    description="Pull all tables from Supabase into the DuckDB raw schema via paginated API calls.",
+    description="Poiminta Supabasesta DuckDB:n raw-skeemaan. Ei muunnoksia.",
 )
-def extract_supabase(context: AssetExecutionContext) -> MaterializeResult:
-    """Run the extraction script: Supabase → DuckDB raw schema."""
-
-    result = subprocess.run(
-        ["python", str(EXTRACT_SCRIPT)],
-        capture_output=True,
-        text=True,
+def raw_supabase(
+    context: dg.AssetExecutionContext,
+    pipes: dg.PipesSubprocessClient,
+) -> dg.MaterializeResult:
+    return pipes.run(
+        command=[PYTHON, str(PROJECT_DIR / "extract" / "supabase_to_duckdb.py")],
         cwd=str(PROJECT_DIR),
-        env={**os.environ},  # inherits .env vars if loaded
-    )
-
-    if result.returncode != 0:
-        context.log.error(f"Extraction failed:\n{result.stderr}")
-        raise Exception(f"Extraction script failed with code {result.returncode}")
-
-    context.log.info(result.stdout)
-
-    return MaterializeResult(
-        metadata={
-            "stdout": MetadataValue.text(result.stdout[-2000:] if len(result.stdout) > 2000 else result.stdout),
-        }
-    )
+        context=context,
+    ).get_materialize_result()
 
 
-# ---------------------------------------------------------------------------
-# Asset: dbt models (staging → intermediate → marts)
-# ---------------------------------------------------------------------------
-@dbt_assets(
-    manifest=dbt_project.manifest_path,
-    project=dbt_project,
+@dg.asset(
+    deps=[raw_supabase],
+    group_name="penkkikarnevaalit",
+    compute_kind="dbt",
+    description=(
+        "dbt build: 14 mallia kolmessa kerroksessa ja 47 testiä. "
+        "Ajojärjestyksen päättelee dbt itse ref()-viittauksista."
+    ),
 )
-def penkkikarnevaalit_dbt_assets(context: AssetExecutionContext, dbt: DbtCliResource):
-    """
-    All dbt models as Dagster assets.
+def dbt_models(
+    context: dg.AssetExecutionContext,
+    pipes: dg.PipesSubprocessClient,
+) -> dg.MaterializeResult:
+    return pipes.run(
+        command=[DBT, "build", "--profiles-dir", "."],
+        cwd=str(PROJECT_DIR),
+        context=context,
+    ).get_materialize_result()
 
-    Dagster-dbt integration automatically:
-    - Maps each dbt model to a Dagster asset
-    - Respects the dbt DAG (staging → intermediate → marts)
-    - Runs dbt tests after materialization
-    """
-    yield from dbt.cli(["build"], context=context).stream()
 
-
-# ---------------------------------------------------------------------------
-# Job: full pipeline refresh
-# ---------------------------------------------------------------------------
-full_refresh_job = define_asset_job(
-    name="full_pipeline_refresh",
-    description="Extract from Supabase, then build all dbt models and run tests.",
-    selection=AssetSelection.all(),
+@dg.asset(
+    deps=[dbt_models],
+    group_name="penkkikarnevaalit",
+    compute_kind="python",
+    description="Mittaristo marteista: reports/haastemittaristo.html.",
 )
+def haastemittaristo(
+    context: dg.AssetExecutionContext,
+    pipes: dg.PipesSubprocessClient,
+) -> dg.MaterializeResult:
+    return pipes.run(
+        command=[PYTHON, str(PROJECT_DIR / "reports" / "build_dashboard.py")],
+        cwd=str(PROJECT_DIR),
+        context=context,
+    ).get_materialize_result()
 
 
-# ---------------------------------------------------------------------------
-# Schedule: daily refresh (optional, for production use)
-# ---------------------------------------------------------------------------
-daily_refresh_schedule = ScheduleDefinition(
-    job=full_refresh_job,
-    cron_schedule="0 6 * * *",  # 06:00 UTC daily
-    default_status=None,  # disabled by default — enable in Dagster UI
+paivitys = dg.define_asset_job(
+    name="paivitys",
+    description="Koko ketju: poiminta, mallit ja testit, mittaristo.",
+    selection=dg.AssetSelection.all(),
 )
 
+# Pois päältä oletuksena. Tuotannossa tämä ajaisi putken joka aamu kuudelta.
+aamuajo = dg.ScheduleDefinition(
+    job=paivitys,
+    cron_schedule="0 6 * * *",
+    default_status=dg.DefaultScheduleStatus.STOPPED,
+)
 
-# ---------------------------------------------------------------------------
-# Definitions
-# ---------------------------------------------------------------------------
-defs = Definitions(
-    assets=[extract_supabase, penkkikarnevaalit_dbt_assets],
-    resources={"dbt": dbt_resource},
-    jobs=[full_refresh_job],
-    schedules=[daily_refresh_schedule],
+defs = dg.Definitions(
+    assets=[raw_supabase, dbt_models, haastemittaristo],
+    jobs=[paivitys],
+    schedules=[aamuajo],
+    resources={"pipes": dg.PipesSubprocessClient()},
 )
