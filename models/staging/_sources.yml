@@ -1,0 +1,203 @@
+version: 2
+
+sources:
+  - name: raw
+    description: >
+      Raw data extracted from Penkkikarnevaalit's Supabase (Postgres) database.
+      Full extract, no transformations. Loaded by extract/supabase_to_duckdb.py.
+    schema: raw
+    tables:
+      - name: users
+        description: >
+          User accounts. Each row is one registered user. Contains auth info,
+          preferences, and the user's personal target 1RM.
+        columns:
+          - name: id
+            description: UUID primary key (Supabase auth.uid)
+          - name: name
+            description: Display name chosen at registration
+          - name: email
+            description: Email address used for auth and password recovery
+          - name: target_1rm
+            description: >
+              User's global personal 1RM goal (kg). The app prefers
+              challenge_members.target_1rm and falls back to this.
+          - name: starting_1rm
+            description: >
+              Global baseline 1RM (kg). The challenge-context baseline is
+              challenge_members.starting_1rm. Unused downstream.
+          - name: starting_1rm_date
+            description: Date the global baseline was recorded
+          - name: is_active
+            description: Whether the user account is active
+          - name: created_at
+            description: Account creation timestamp (UTC)
+
+      - name: workouts
+        description: >
+          Every bench press set logged by a user. The core fact table of
+          the app. Each row = one set (weight x reps) with a calculated
+          estimated 1RM using the Brzycki formula.
+        columns:
+          - name: id
+            description: UUID primary key
+          - name: user_id
+            description: FK to users.id — who logged this set
+          - name: weight_kg
+            description: Weight on the bar in kilograms
+          - name: reps
+            description: Number of repetitions performed
+          - name: estimated_1rm
+            description: >
+              Estimated one-rep max calculated via Brzycki formula:
+              weight_kg * (36 / (37 - reps)). Capped at 12 reps for accuracy.
+          - name: comment
+            description: Optional text note (e.g. "evening session")
+          - name: gym_name
+            description: Where the set was performed
+          - name: logged_at
+            description: When the set was performed (user-reported)
+          - name: created_at
+            description: When the record was inserted (system timestamp)
+
+      - name: challenges
+        description: >
+          Group bench press challenges. A challenge sets a combined 1RM
+          goal (e.g. 600 kg total) with a deadline. Multiple users join
+          and contribute their individual 1RM toward the group target.
+        columns:
+          - name: id
+            description: UUID primary key
+          - name: name
+            description: Challenge name (e.g. "Penkkikarnevaalit 600")
+          - name: goal_kg
+            description: Combined 1RM target for the whole group
+          - name: goal_start_kg
+            description: Combined 1RM at challenge start (baseline)
+          - name: goal_start_date
+            description: Challenge start date
+          - name: goal_end_date
+            description: Challenge deadline
+          - name: invite_code
+            description: Short code used to invite members
+          - name: created_by
+            description: FK to users.id — challenge creator
+          - name: status
+            description: "'active' or 'archived'"
+          - name: max_members
+            description: Maximum number of members allowed
+
+      - name: challenge_members
+        description: >
+          Junction table between challenges and users. Tracks who is in
+          which challenge, their role (admin/member), assigned color,
+          and personal 1RM targets within that challenge.
+        columns:
+          - name: id
+            description: UUID primary key
+          - name: challenge_id
+            description: FK to challenges.id
+          - name: user_id
+            description: FK to users.id
+          - name: color
+            description: Hex color assigned for dashboard visuals
+          - name: role
+            description: "'admin' or 'member'"
+          - name: target_1rm
+            description: Personal 1RM target within this challenge (kg)
+          - name: starting_1rm
+            description: 1RM at the time of joining (kg)
+          - name: joined_at
+            description: When the user joined this challenge
+
+      - name: user_profiles
+        description: >
+          Extended user profile data. Body measurements and experience level,
+          collected by the onboarding wizard.
+
+          Empty in production (0 rows) as of 2026-09-01: profilesService
+          does not persist what onboarding collects. Everything joined from
+          this table is therefore NULL downstream.
+
+          This table has no target_1rm / target_date / target_start_1rm /
+          target_start_date columns, despite the app's UserProfile type
+          declaring them.
+        columns:
+          - name: id
+            description: UUID primary key
+          - name: user_id
+            description: FK to users.id (1:1, unique)
+          - name: body_weight_kg
+            description: User's body weight in kg. No downstream reader.
+          - name: height_cm
+            description: User's height in cm. No downstream reader.
+          - name: birth_year
+            description: Year of birth
+          - name: experience_level
+            description: "Self-reported: beginner/intermediate/advanced/elite"
+          - name: onboarding_completed
+            description: Whether the user finished the onboarding wizard
+
+      - name: activities
+        description: >
+          Activity feed events. Generated when a user logs a workout,
+          hits a PR, or reaches a milestone. Powers the social Chronicle feed.
+        columns:
+          - name: id
+            description: UUID primary key
+          - name: user_id
+            description: FK to users.id — who triggered the event
+          - name: activity_type
+            description: >
+              Declared as 'workout_logged', 'pr_achieved' or 'milestone', but
+              the column has no check constraint and production contains only
+              'workout_logged' (44 of 44 rows on 2026-09-01). The accepted
+              values test permits all three deliberately, as a superset.
+          - name: metadata
+            description: JSON with event-specific data (weight, reps, 1RM, etc.)
+          - name: created_at
+            description: Event timestamp
+
+      - name: kudos_reactions
+        description: >
+          Emoji reactions on activity feed items. Social engagement metric.
+        columns:
+          - name: id
+            description: UUID primary key
+          - name: activity_id
+            description: FK to activities.id
+          - name: user_id
+            description: FK to users.id — who reacted
+          - name: emoji
+            description: The emoji used
+
+      - name: activity_comments
+        description: >
+          Text comments on activity feed items. Social engagement metric.
+          Note the table name: it is activity_comments, not comments.
+        columns:
+          - name: id
+            description: UUID primary key
+          - name: activity_id
+            description: FK to activities.id
+          - name: user_id
+            description: FK to users.id — who commented
+          - name: content
+            description: Comment text (max 500 chars)
+          - name: is_herra
+            description: >
+              Boolean flag, default false. Not referenced anywhere in the
+              app UI — dead column, carried through staging unused.
+
+      - name: comment_reactions
+        description: >
+          Emoji reactions on comments. Secondary social engagement metric.
+        columns:
+          - name: id
+            description: UUID primary key
+          - name: comment_id
+            description: FK to comments.id
+          - name: user_id
+            description: FK to users.id — who reacted
+          - name: emoji
+            description: The emoji used

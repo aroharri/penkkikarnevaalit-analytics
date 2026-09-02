@@ -1,0 +1,87 @@
+version: 2
+
+models:
+  - name: int_workout_metrics
+    description: >
+      Each workout enriched with user context, PR flags, and running metrics.
+      Joins workouts with user profiles to calculate relative strength (1RM / bodyweight),
+      identifies personal records chronologically, and computes training consistency
+      metrics like days since last workout and running best 1RM.
+      This is the workhorse table for all downstream analysis.
+    columns:
+      - name: workout_id
+        description: Primary key — from stg_workouts
+        data_tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: FK to stg_users
+        data_tests:
+          - not_null
+      - name: user_name
+        description: Display name from stg_users
+      - name: weight_kg
+        description: Weight on the bar
+      - name: reps
+        description: Repetitions performed (1–12)
+      - name: estimated_1rm_kg
+        description: Brzycki-calculated 1RM from the app
+      - name: is_pr
+        description: >
+          True if this workout's 1RM matched or exceeded the user's
+          previous all-time best at the time of logging.
+      - name: running_best_1rm_kg
+        description: The user's best 1RM up to and including this workout
+      - name: days_since_last_workout
+        description: Calendar days between this and the previous workout. NULL for first workout.
+      - name: workout_number
+        description: Sequential workout count per user (1, 2, 3...)
+      - name: _1rm_change_kg
+        description: Change in 1RM from previous workout (positive = improvement)
+
+  - name: int_member_progress
+    description: >
+      Each challenge member's current progress — latest 1RM, total workouts,
+      consistency metrics, and distance to personal target. Combines membership
+      data with aggregated workout statistics to give a complete picture of
+      where each member stands in their challenge.
+    columns:
+      - name: membership_id
+        description: Primary key — from stg_challenge_members
+        data_tests:
+          - unique
+          - not_null
+      - name: challenge_id
+        description: FK to stg_challenges
+        data_tests:
+          - not_null
+      - name: user_id
+        description: FK to stg_users
+        data_tests:
+          - not_null
+      - name: current_1rm_kg
+        description: The member's most recent workout 1RM
+      - name: _1rm_gained_kg
+        description: Current 1RM minus starting 1RM at challenge join
+      - name: progress_pct
+        description: >
+          Percentage of the way from starting 1RM to target 1RM.
+          100 = target reached. Can exceed 100.
+      - name: total_workouts
+        description: Lifetime workout count for this user
+      - name: avg_days_between_workouts
+        description: Average training frequency — lower is more consistent
+      - name: days_inactive
+        description: Days since last workout. NULL if never trained.
+      - name: analytics_engagement_status
+        description: >
+          Analytics-owned risk classification based on inactivity.
+          Values: active (≤7d), cooling_off (8–14d), at_risk (>14d), never_trained.
+
+          NOT a UI concept. The app's WeeklyRecap shows a two-state split over
+          a 7-day window ("Palvellut" / "Kadonneet lampaat"); the prefix keeps
+          the richer analytics view from being mistaken for it.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['active', 'cooling_off', 'at_risk', 'never_trained']

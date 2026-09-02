@@ -1,0 +1,33 @@
+# Data
+*.duckdb
+*.duckdb.wal
+
+# Secrets
+.env
+
+# dbt
+target/
+.user.yml
+dbt_packages/
+logs/
+
+# Dagster
+.dagster_home/
+storage/
+schedules/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Tyokalujen paikalliset asetukset
+.claude/
+
+# Generoitu tuotos: lahde on _template.html + build_dashboard.py.
+# Sisaltaa myos jasenten nimet ja tulokset, joten ei versionhallintaan
+# ennen kuin anonymisointi tai suostumus on hoidettu.
+reports/haastemittaristo.html
+
+# Henkilokohtaiset muistiinpanot
+reports/DEMO.md

@@ -1,0 +1,88 @@
+version: 2
+
+models:
+  - name: fct_workouts
+    description: >
+      Fact table: every valid bench press set with full context, PR flags and
+      running metrics. The primary table for BI tools and ad-hoc analysis.
+      Grain: one row per logged set that passes the stg_workouts filters.
+    columns:
+      - name: workout_id
+        description: Primary key
+        data_tests:
+          - unique
+          - not_null
+      - name: user_id
+        data_tests:
+          - not_null
+      - name: is_pr
+        description: >
+          True when this set's 1RM exceeded the user's previous best. The
+          first set a user logs always counts as a PR.
+
+  - name: dim_users
+    description: >
+      User dimension with lifetime stats and social engagement.
+      Grain: one row per user, active and inactive. Filter on is_active.
+    columns:
+      - name: user_id
+        description: Primary key
+        data_tests:
+          - unique
+          - not_null
+      - name: user_name
+        data_tests:
+          - not_null
+      - name: current_1rm_kg
+        description: >
+          The user's most recent workout 1RM — matches the app's "1RM nyt".
+          Deliberately not the all-time best; see all_time_best_1rm_kg.
+      - name: kudos_received
+        description: >
+          Reactions on this user's activities, self-reactions included.
+          Matches the app: toggle_kudos has no self-check and KudosBar renders
+          every reaction.
+      - name: kudos_received_excl_self
+        description: >
+          Analytics-only variant that drops self-reactions. Does not match any
+          number shown in the app.
+
+  - name: dim_challenges
+    description: >
+      Challenge dimension: goal progress, team composition, engagement health
+      and standout members. Grain: one row per challenge.
+
+      Absorbs the former int_challenge_progress and metrics_challenge_health,
+      which sat at this same grain and chained directly into it.
+    columns:
+      - name: challenge_id
+        description: Primary key
+        data_tests:
+          - unique
+          - not_null
+      - name: goal_total_1rm_kg
+        description: >
+          Sum of members' personal target_1rm, falling back to
+          challenges.goal_kg when no member has one. Mirrors the app's
+          `members.reduce(...) || challenge.goal_kg`.
+      - name: current_total_1rm_kg
+        description: >
+          Sum of each member's latest workout 1RM. Members with no workouts
+          contribute nothing, as in the app.
+      - name: progress_pct
+        description: >
+          current_total_1rm_kg / goal_total_1rm_kg * 100, capped at 100.
+          Matches the app's ProgressGauge exactly.
+      - name: baseline_total_1rm_kg
+        description: >
+          challenges.goal_start_kg, carried for visibility only. No metric is
+          derived from it because create_challenge never sets it — it is 0 on
+          every challenge created through the app.
+      - name: overall_health
+        description: >
+          Analytics-owned scorecard, not a UI concept. Combines engagement
+          health with progress measured against elapsed time.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['HEALTHY', 'WATCH', 'CRITICAL', 'ARCHIVED', 'NO_DATA']

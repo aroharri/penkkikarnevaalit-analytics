@@ -1,0 +1,142 @@
+version: 2
+
+models:
+  - name: stg_users
+    description: >
+      Cleaned user accounts. Includes all users (active and inactive) to
+      preserve FK integrity. Filter on is_active downstream where needed.
+    columns:
+      - name: user_id
+        description: Primary key — Supabase auth UUID
+        data_tests:
+          - unique
+          - not_null
+      - name: user_name
+        description: Display name chosen at registration
+        data_tests:
+          - not_null
+      - name: registered_at
+        description: When the user created their account
+
+  - name: stg_workouts
+    description: >
+      Cleaned bench press sets. Filters out invalid entries (0 reps,
+      0 weight, >12 reps). Adds calculated_1rm_kg for Brzycki formula
+      validation and workout_date for daily aggregations.
+    columns:
+      - name: workout_id
+        description: Primary key
+        data_tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: FK to stg_users
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_users')
+                field: user_id
+      - name: weight_kg
+        description: Weight on the bar
+        data_tests:
+          - not_null
+      - name: reps
+        description: Repetitions (1-12 range)
+        data_tests:
+          - not_null
+      - name: estimated_1rm_kg
+        description: App-calculated 1RM via Brzycki formula
+
+  - name: stg_challenges
+    description: >
+      Group bench press challenges with goal, timeline, and status.
+    columns:
+      - name: challenge_id
+        description: Primary key
+        data_tests:
+          - unique
+          - not_null
+      - name: challenge_status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['active', 'archived']
+
+  - name: stg_challenge_members
+    description: >
+      Challenge membership — who is in which challenge, their role,
+      starting 1RM, and personal target.
+    columns:
+      - name: membership_id
+        description: Primary key
+        data_tests:
+          - unique
+          - not_null
+      - name: member_role
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['admin', 'member']
+
+  - name: stg_user_profiles
+    description: >
+      Extended user profiles — body weight, height, experience level.
+      Used for relative strength calculations (1RM / bodyweight).
+    columns:
+      - name: user_id
+        description: Primary key (1:1 with users)
+        data_tests:
+          - unique
+          - not_null
+      - name: experience_level
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['beginner', 'intermediate', 'advanced', 'elite']
+              config:
+                where: "experience_level is not null"
+
+  - name: stg_activities
+    description: >
+      Activity feed events — social layer of the app. Each workout, PR,
+      or milestone creates an activity that others can react to.
+    columns:
+      - name: activity_id
+        data_tests:
+          - unique
+          - not_null
+      - name: activity_type
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['workout_logged', 'pr_achieved', 'milestone']
+
+  - name: stg_kudos
+    description: >
+      Emoji reactions on activities. Engagement signal — shows social
+      interaction within the crew.
+    columns:
+      - name: kudos_id
+        data_tests:
+          - unique
+          - not_null
+
+  - name: stg_comments
+    description: >
+      Text comments on activities. Deeper engagement signal than kudos.
+    columns:
+      - name: comment_id
+        data_tests:
+          - unique
+          - not_null
+
+  - name: stg_comment_reactions
+    description: >
+      Emoji reactions on comments. Secondary social engagement signal,
+      distinct from kudos on activities.
+    columns:
+      - name: comment_reaction_id
+        data_tests:
+          - unique
+          - not_null

@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "penkkikarnevaalit-analytics"
+version = "0.1.0"
+description = "End-to-end analytics engineering pipeline for Penkkikarnevaalit — a social bench press challenge app"
+requires-python = ">=3.10"
+dependencies = [
+    "dbt-duckdb>=1.8.0",
+    "dagster>=1.7.0",
+    "dagster-dbt>=0.23.0",
+    "dagster-duckdb>=0.23.0",
+    "supabase>=2.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.4.0",
+    "pytest>=8.0.0",
+]
+
+[tool.setuptools]
+packages = ["extract", "orchestration"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.dagster]
+module_name = "orchestration.assets"

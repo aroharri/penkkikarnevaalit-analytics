@@ -1,0 +1,652 @@
+<meta charset="utf-8">
+<title>Penkkikarnevaalit 600</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root{
+    --paper:#F3F5F6; --surface:#FFFFFF; --surface-2:#EDF0F2;
+    --ink:#161A1E; --ink-soft:#59636D; --ink-mute:#8A949E;
+    --rule:#D8DDE1;
+    --accent:#26537A; --accent-soft:#E4EBF2;
+    --ok:#2E6B4F; --warn:#8F6416; --risk:#A0392F;
+    --ok-bg:#E6F0EA; --warn-bg:#F6EEDD; --risk-bg:#F6E7E5;
+    --s-1:.8rem; --s0:1rem; --s1:1.2rem; --s2:1.55rem; --s3:2.1rem; --s4:3.2rem;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --paper:#0F1418; --surface:#161D23; --surface-2:#1D262E;
+      --ink:#E3E9ED; --ink-soft:#95A2AD; --ink-mute:#6D7A85;
+      --rule:#25303A;
+      --accent:#79B0D8; --accent-soft:#1B2C3A;
+      --ok:#68B992; --warn:#D2A452; --risk:#DE827A;
+      --ok-bg:#16281F; --warn-bg:#2A2116; --risk-bg:#2B1A18;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0F1418; --surface:#161D23; --surface-2:#1D262E;
+    --ink:#E3E9ED; --ink-soft:#95A2AD; --ink-mute:#6D7A85;
+    --rule:#25303A;
+    --accent:#79B0D8; --accent-soft:#1B2C3A;
+    --ok:#68B992; --warn:#D2A452; --risk:#DE827A;
+    --ok-bg:#16281F; --warn-bg:#2A2116; --risk-bg:#2B1A18;
+  }
+
+  *,*::before,*::after{box-sizing:border-box}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Source Sans 3",ui-sans-serif,system-ui,sans-serif;
+    font-size:var(--s0); line-height:1.6; margin:0;
+    padding:clamp(1.2rem,3vw,2.6rem) clamp(1rem,3vw,2rem) 4rem;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:1.4rem}
+
+  h1,h2,h3{font-family:Archivo,system-ui,sans-serif;margin:0;text-wrap:balance}
+  h1{font-size:var(--s3);font-weight:700;letter-spacing:-.025em;line-height:1.06}
+  h2{font-size:var(--s1);font-weight:600;letter-spacing:-.01em}
+  h3{font-size:var(--s0);font-weight:600}
+  p{margin:0;text-wrap:pretty}
+  strong{font-weight:600}
+
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--ink-mute);margin:0 0 .5rem}
+
+  header{display:flex;flex-wrap:wrap;gap:1rem 2rem;align-items:flex-end;justify-content:space-between;
+    padding-bottom:1.1rem;border-bottom:2px solid var(--ink)}
+  .sub{color:var(--ink-soft);font-size:var(--s0);margin-top:.35rem}
+  .sub.sm{font-size:var(--s-1)}
+  .stamp{font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--ink-mute);
+    text-align:right;line-height:1.7}
+
+  .tabs{display:flex;gap:.25rem;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+  .tabs button{appearance:none;background:none;border:none;cursor:pointer;
+    font-family:Archivo,sans-serif;font-size:var(--s0);font-weight:600;color:var(--ink-soft);
+    padding:.6rem .95rem;border-bottom:2px solid transparent;margin-bottom:-1px;border-radius:4px 4px 0 0}
+  .tabs button:hover{color:var(--ink);background:var(--surface-2)}
+  .tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+  .tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  [role="tabpanel"]{display:flex;flex-direction:column;gap:1.4rem}
+  [role="tabpanel"][hidden]{display:none}
+
+  .card{background:var(--surface);border:1px solid var(--rule);border-radius:6px;
+    padding:1.15rem 1.25rem;display:flex;flex-direction:column;gap:.7rem}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1rem}
+  .kpi .v{font-family:Archivo,sans-serif;font-size:var(--s4);font-weight:700;
+    line-height:.98;letter-spacing:-.035em;font-variant-numeric:tabular-nums}
+  .kpi .u{font-size:var(--s1);font-weight:500;color:var(--ink-soft);margin-left:.15rem}
+  .kpi .c{font-size:var(--s-1);color:var(--ink-soft);line-height:1.45}
+  .kpi.lead .v{color:var(--accent)}
+
+  .chartwrap{overflow-x:auto}
+  svg{display:block;width:100%;height:auto}
+  #chart{min-width:560px}
+  .grid{stroke:var(--rule);stroke-width:1}
+  .axis-t{font-family:"IBM Plex Mono",monospace;font-size:11px;fill:var(--ink-mute)}
+  .goal{stroke:var(--ink-soft);stroke-width:1;stroke-dasharray:5 4;opacity:.75}
+  .series{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+  .area{fill:var(--accent);opacity:.07}
+  .endpt{fill:var(--accent);stroke:var(--surface);stroke-width:2}
+  .peakpt{fill:none;stroke:var(--accent);stroke-width:2}
+  .cross{stroke:var(--ink-soft);stroke-width:1;stroke-dasharray:3 3;opacity:0}
+  .hitpt{fill:transparent}
+  .anno{font-family:"IBM Plex Mono",monospace;font-size:11px;fill:var(--ink-soft)}
+
+  .tip{position:fixed;pointer-events:none;opacity:0;transform:translate(-50%,-115%);
+    background:var(--ink);color:var(--paper);border-radius:4px;padding:.4rem .6rem;
+    font-family:"IBM Plex Mono",monospace;font-size:.72rem;line-height:1.5;
+    white-space:nowrap;z-index:20;transition:opacity .1s}
+  .tip.wide{white-space:normal;max-width:330px;text-align:left;
+    font-family:"Source Sans 3",sans-serif;font-size:.78rem;line-height:1.5;padding:.6rem .75rem}
+
+  .insight{border-left:3px solid var(--accent);background:var(--accent-soft)}
+  .twoup{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.1rem;margin-top:.2rem}
+  .twoup .b{display:flex;flex-direction:column;gap:.15rem}
+  .twoup .n{font-family:Archivo,sans-serif;font-size:var(--s3);font-weight:700;
+    letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+  .twoup .l{font-size:var(--s-1);color:var(--ink-soft);line-height:1.4}
+
+  .tblwrap{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:var(--s-1)}
+  #members-t{min-width:620px}
+  .recon table{min-width:520px}
+  .layers{min-width:560px}
+  .metrics{min-width:660px}
+  th,td{text-align:left;padding:.62rem .7rem;border-bottom:1px solid var(--rule);vertical-align:top}
+  thead th{font-family:"IBM Plex Mono",monospace;font-weight:500;font-size:.68rem;
+    letter-spacing:.09em;text-transform:uppercase;color:var(--ink-mute);
+    border-bottom-color:var(--ink-soft);white-space:nowrap}
+  td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  th.n{text-align:right}
+  tbody tr:last-child td{border-bottom:none}
+  .name{font-weight:600}
+  #members td{vertical-align:middle}
+  .f{font-family:"IBM Plex Mono",monospace;font-size:.95em;color:var(--ink)}
+
+  .bullet{width:150px;height:16px;display:block}
+  .b-track{fill:var(--surface-2)}
+  .b-fill{fill:var(--accent)}
+  .b-best{stroke:var(--ink-soft);stroke-width:2}
+  .b-target{stroke:var(--ink);stroke-width:2}
+
+  .pill{display:inline-flex;align-items:center;gap:.32rem;padding:.14rem .5rem;
+    border-radius:99px;font-family:"IBM Plex Mono",monospace;font-size:.66rem;
+    letter-spacing:.04em;white-space:nowrap}
+  .pill::before{content:"";width:6px;height:6px;border-radius:99px;background:currentColor}
+  .p-ok{background:var(--ok-bg);color:var(--ok)}
+  .p-warn{background:var(--warn-bg);color:var(--warn)}
+  .p-risk{background:var(--risk-bg);color:var(--risk)}
+  .tick{color:var(--ok);font-weight:600}
+
+  .legend{display:flex;flex-wrap:wrap;gap:.4rem 1.1rem;font-size:var(--s-1);color:var(--ink-soft)}
+  .legend span{display:inline-flex;align-items:center;gap:.4rem}
+  .sw{width:14px;height:3px;border-radius:2px;background:var(--accent);display:inline-block}
+  .sw.line{height:12px;width:2px;background:var(--ink-soft)}
+  .sw.tgt{height:12px;width:2px;background:var(--ink)}
+
+  .flowwrap{overflow-x:auto;padding-bottom:.3rem}
+  .flow{display:flex;align-items:stretch;gap:0;min-width:700px}
+  .step{flex:1;background:var(--surface-2);border:1px solid var(--rule);border-radius:5px;
+    padding:.7rem .75rem;display:flex;flex-direction:column;gap:.2rem;min-width:96px;
+    cursor:help;transition:border-color .12s,background .12s}
+  .step:hover,.step:focus-visible{border-color:var(--accent);background:var(--accent-soft)}
+  .step:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .step::after{content:"?";position:absolute;opacity:0}
+  .step.out{background:var(--accent-soft);border-color:var(--accent)}
+  .step .t{font-family:Archivo,sans-serif;font-weight:600;font-size:.85rem;line-height:1.25}
+  .step .d{font-family:"IBM Plex Mono",monospace;font-size:.63rem;color:var(--ink-soft);line-height:1.5}
+  .arrow{display:flex;align-items:center;padding:0 .35rem;color:var(--ink-mute);flex:0 0 auto}
+
+  .facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.9rem}
+  .fact{border-left:2px solid var(--rule);padding-left:.75rem;display:flex;flex-direction:column}
+  .fact .v{font-family:Archivo,sans-serif;font-size:var(--s2);font-weight:700;
+    letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums}
+  .fact .l{font-size:var(--s-1);color:var(--ink-soft);line-height:1.4}
+
+  .lesson{display:flex;flex-direction:column;gap:.4rem;padding:1rem 0;border-bottom:1px solid var(--rule)}
+  .lesson:last-child{border-bottom:none;padding-bottom:0}
+  .lesson h3{font-size:var(--s1);font-family:Archivo,sans-serif;line-height:1.25}
+  .lesson p{color:var(--ink-soft)}
+
+  footer{border-top:1px solid var(--rule);padding-top:1rem;font-size:var(--s-1);
+    color:var(--ink-soft);display:flex;flex-direction:column;gap:.5rem}
+  code{font-family:"IBM Plex Mono",monospace;font-size:.86em;
+    background:var(--surface-2);border-radius:3px;padding:.06em .32em}
+  ul{margin:0;padding-left:1.2rem;display:flex;flex-direction:column;gap:.35rem}
+  li::marker{color:var(--accent)}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div>
+      <p class="eyebrow">Haastemittaristo</p>
+      <h1 id="h-name">Penkkikarnevaalit&nbsp;600</h1>
+      <p class="sub">Joukkueen yhteenlaskettu 1RM suhteessa tavoitteeseen</p>
+    </div>
+    <div class="stamp">
+      Lähde: Supabase (tuotanto)<br>
+      <span id="h-gen">—</span><br>
+      <span id="h-vol">—</span>
+    </div>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Näkymät">
+    <button role="tab" id="t-mittaristo" aria-controls="p-mittaristo" aria-selected="true">Mittaristo</button>
+    <button role="tab" id="t-mittarit" aria-controls="p-mittarit" aria-selected="false">Mittarit</button>
+    <button role="tab" id="t-putki" aria-controls="p-putki" aria-selected="false">Dataputki</button>
+  </div>
+
+  <!-- ============ MITTARISTO ============ -->
+  <div role="tabpanel" id="p-mittaristo" aria-labelledby="t-mittaristo">
+    <section class="kpis" id="kpis"></section>
+
+    <section class="card">
+      <div>
+        <h2>Yhteispaino ajan yli</h2>
+        <p class="sub sm" id="chart-sub">—</p>
+      </div>
+      <div class="chartwrap">
+        <svg id="chart" viewBox="0 0 900 330" role="img"
+             aria-label="Viivakaavio joukkueen yhteenlasketusta 1RM:stä ajan yli, verrattuna tavoitteeseen."></svg>
+      </div>
+    </section>
+
+    <section class="card insight">
+      <div>
+        <p class="eyebrow">Havainto</p>
+        <h2 id="ins-h">—</h2>
+      </div>
+      <div class="twoup">
+        <div class="b">
+          <span class="n" id="ins-cur">—</span>
+          <span class="l"><strong>Viimeisin treeni.</strong> Näin sovellus laskee.
+            <span id="ins-curpct">—</span> tavoitteesta.</span>
+        </div>
+        <div class="b">
+          <span class="n" id="ins-best">—</span>
+          <span class="l"><strong>Paras koskaan.</strong> Mihin joukkue on jo pystynyt.
+            <span id="ins-bestpct">—</span> tavoitteesta.</span>
+        </div>
+      </div>
+      <p class="sub sm">
+        Sama data, kaksi puolustettavaa määritelmää. Kevyt palauttava treeni laskee jäsenen
+        lukua, vaikka voima ei ole kadonnut. Tämä ei ole datavirhe vaan tuotepäätös — ja se
+        on tuoteomistajan, ei analytiikan, ratkaistava. Mittaristo noudattaa sovelluksen
+        määritelmää, koska luvun on täsmättävä siihen mitä käyttäjä näkee.
+      </p>
+    </section>
+
+    <section class="card">
+      <div>
+        <h2>Jäsenet</h2>
+        <p class="sub sm">Nykyinen 1RM, oma ennätys ja henkilökohtainen tavoite</p>
+      </div>
+      <div class="legend">
+        <span><i class="sw"></i> Nykyinen</span>
+        <span><i class="sw line"></i> Oma ennätys</span>
+        <span><i class="sw tgt"></i> Tavoite</span>
+      </div>
+      <div class="tblwrap">
+        <table id="members-t">
+          <thead>
+            <tr>
+              <th>Jäsen</th><th>Vertailu</th>
+              <th class="n">Nyt</th><th class="n">Ennätys</th><th class="n">Tavoite</th>
+              <th class="n">Treenit</th><th>Viimeksi</th><th>Tila</th>
+            </tr>
+          </thead>
+          <tbody id="members"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div>
+        <p class="eyebrow">Riski</p>
+        <h2 id="risk-h">—</h2>
+      </div>
+      <p class="sub sm" id="risk-p">—</p>
+    </section>
+
+    <section class="card recon">
+      <div>
+        <p class="eyebrow">Täsmäytys 1.9.2026</p>
+        <h2>Luvut vastaavat sovellusta</h2>
+        <p class="sub sm">
+          Jokainen luku on verrattu siihen, mitä Penkkikarnevaalit näytti käyttäjälle
+          samalla hetkellä. Erotus oli nolla. Tämä on kirjattu tulos, ei laskettu uudelleen.
+        </p>
+      </div>
+      <div class="tblwrap">
+        <table>
+          <thead>
+            <tr><th>Mittari</th><th class="n">Sovellus</th><th class="n">Putki</th><th class="n">Ero</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Yhteispaino</td><td class="n">538,3 kg</td><td class="n">538,31 kg</td><td class="n">0,00</td><td class="tick">✓</td></tr>
+            <tr><td>Jäljellä</td><td class="n">61,7 kg</td><td class="n">61,69 kg</td><td class="n">0,00</td><td class="tick">✓</td></tr>
+            <tr><td>Aikaa jäljellä</td><td class="n">117 pv</td><td class="n">117 pv</td><td class="n">0</td><td class="tick">✓</td></tr>
+            <tr><td>Harrin 1RM</td><td class="n">120 kg</td><td class="n">120,03 kg</td><td class="n">0,00</td><td class="tick">✓</td></tr>
+            <tr><td>Suoritukset</td><td class="n">31 / 7 / 5 / 1</td><td class="n">31 / 7 / 5 / 1</td><td class="n">0</td><td class="tick">✓</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="sub sm">
+        Ensimmäisellä kerralla edistymisprosentti poikkesi 78 prosenttiyksikköä — putki laski
+        tavoitellusta noususta, sovellus tavoitteesta. 47 automaattista testiä oli vihreänä
+        koko ajan. Vain täsmäytys löysi sen.
+      </p>
+    </section>
+  </div>
+
+  <!-- ============ MITTARIT ============ -->
+  <div role="tabpanel" id="p-mittarit" aria-labelledby="t-mittarit" hidden>
+    <section class="card">
+      <div>
+        <h2>Mittarien määritelmät</h2>
+        <p class="sub sm">
+          Määritelmät on johdettu sovelluksen käyttöliittymästä, ei tietokannasta.
+          Sääntö on yksinkertainen: jos luku näkyy käyttäjälle, sovellus on totuus.
+        </p>
+      </div>
+      <div class="tblwrap">
+        <table class="metrics">
+          <thead><tr><th>Mittari</th><th>Mitä se tarkoittaa</th><th>Kaava</th><th>Lähde</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="name">Nykyinen 1RM</td>
+              <td>Jäsenen <em>viimeisimmän</em> treenin arvioitu ykkösmaksimi. Ei paras koskaan.</td>
+              <td class="f">paino × 36 / (37 − toistot)</td>
+              <td class="f">workouts</td>
+            </tr>
+            <tr>
+              <td class="name">Yhteispaino</td>
+              <td>Haasteen jäsenten nykyisten 1RM-arvojen summa. Jäsen ilman treenejä ei kartuta summaa.</td>
+              <td class="f">summa(nykyinen 1RM)</td>
+              <td class="f">workouts + challenge_members</td>
+            </tr>
+            <tr>
+              <td class="name">Tavoite</td>
+              <td>Jäsenten henkilökohtaisten tavoitteiden summa. Jos yhtään tavoitetta ei ole asetettu, käytetään haasteen omaa tavoitetta.</td>
+              <td class="f">summa(target_1rm)<br>tai goal_kg</td>
+              <td class="f">challenge_members</td>
+            </tr>
+            <tr>
+              <td class="name">Tavoitteesta&nbsp;%</td>
+              <td>Kuinka lähellä tavoitetta ollaan. Katkaistaan sataan.</td>
+              <td class="f">yhteispaino / tavoite × 100</td>
+              <td class="f">johdettu</td>
+            </tr>
+            <tr>
+              <td class="name">Jäljellä</td>
+              <td>Montako kiloa tavoitteeseen puuttuu.</td>
+              <td class="f">tavoite − yhteispaino</td>
+              <td class="f">johdettu</td>
+            </tr>
+            <tr>
+              <td class="name">Aikaa</td>
+              <td>Päiviä haasteen päättymiseen.</td>
+              <td class="f">loppupäivä − tänään</td>
+              <td class="f">challenges</td>
+            </tr>
+            <tr>
+              <td class="name">Oma ennätys</td>
+              <td>Jäsenen paras 1RM koskaan. Ei näy sovelluksen päänäkymässä.</td>
+              <td class="f">max(1RM)</td>
+              <td class="f">workouts</td>
+            </tr>
+            <tr>
+              <td class="name">Tila</td>
+              <td>Aktiivisuusluokitus viimeisimmän treenin perusteella. Analytiikan oma mittari.</td>
+              <td class="f">≤7 pv aktiivinen<br>≤30 pv hiipuu<br>yli riskissä</td>
+              <td class="f">workouts</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card insight">
+      <div>
+        <p class="eyebrow">Huomio</p>
+        <h2>Kaksi mittaria on analytiikan omia</h2>
+      </div>
+      <p class="sub sm">
+        <strong>Oma ennätys</strong> ja <strong>Tila</strong> eivät ole sovelluksessa. Ne on
+        laskettu tässä, koska ne kertovat jotain mitä sovellus ei näytä. Ne on merkitty
+        erikseen, jottei niitä luulla tuotteen ominaisuuksiksi — sekaannus siitä, mikä luku
+        on kenenkin, on yleisin syy siihen ettei lukuihin luoteta.
+      </p>
+    </section>
+  </div>
+
+  <!-- ============ DATAPUTKI ============ -->
+  <div role="tabpanel" id="p-putki" aria-labelledby="t-putki" hidden>
+    <section class="card">
+      <div>
+        <h2>Miten luku syntyy</h2>
+        <p class="sub sm">Sovelluksen tietokannasta mittariston lukemaksi</p>
+      </div>
+      <div class="flowwrap">
+        <div class="flow">
+          <div class="step" tabindex="0" data-tip="Sovelluksen oma tietokanta. Analytiikka ei kirjoita tänne koskaan, vain lukee — tuotantokanta palvelee samaan aikaan oikeita käyttäjiä."><span class="t">Supabase</span><span class="d">Postgres<br>9 taulua</span></div>
+          <div class="arrow">→</div>
+          <div class="step" tabindex="0" data-tip="Hakee kaikki rivit rajapinnan kautta, tuhat kerrallaan. Ei suodatuksia eikä nimeämisiä: jos dataa karsitaan tässä, sitä ei saa takaisin — uudelleenpoiminta ei palauta samaa tilannekuvaa, koska lähde elää."><span class="t">Poiminta</span><span class="d">Python<br>ei muunnoksia</span></div>
+          <div class="arrow">→</div>
+          <div class="step" tabindex="0" data-tip="Kopio lähteestä sellaisenaan, alkuperäisillä sarakenimillä. Tänne ei kosketa käsin. Tämä on se tilannekuva, johon voi aina palata."><span class="t">raw</span><span class="d">9 taulua<br>kopio lähteestä</span></div>
+          <div class="arrow">→</div>
+          <div class="step" tabindex="0" data-tip="Siivous tarkoittaa kolmea asiaa: sarakkeet nimetään ymmärrettäviksi (id → workout_id), tekstimuotoiset päivämäärät muutetaan aikaleimoiksi, ja Brzyckin kaavan luotettavuusalueen ulkopuoliset sarjat suodatetaan pois. Yksi malli per lähdetaulu, ei liitoksia."><span class="t">staging</span><span class="d">9 näkymää<br>siivous</span></div>
+          <div class="arrow">→</div>
+          <div class="step" tabindex="0" data-tip="Tässä useampi taulu kohtaa: treenit yhdistetään käyttäjiin, profiileihin, jäsenyyksiin ja haasteisiin. Täällä lasketaan ennätykset, edistyminen ja aktiivisuus."><span class="t">intermediate</span><span class="d">2 näkymää<br>liitokset</span></div>
+          <div class="arrow">→</div>
+          <div class="step out" tabindex="0" data-tip="Julkaistava kerros: fct_workouts (yksi rivi per sarja), dim_users (yksi rivi per käyttäjä), dim_challenges (yksi rivi per haaste). Nämä kolme ovat ainoat, jotka tallennetaan levylle."><span class="t">marts</span><span class="d">3 taulua<br>julkaistavat</span></div>
+          <div class="arrow">→</div>
+          <div class="step out" tabindex="0" data-tip="build_dashboard.py hakee luvut marteista ja täyttää HTML-mallineen. Yksikään luku tällä sivulla ei ole kirjoitettu käsin."><span class="t">Tämä sivu</span><span class="d">HTML</span></div>
+        </div>
+      </div>
+      <div class="facts">
+        <div class="fact"><span class="v">14</span><span class="l">mallia, joista 11 näkymää ja 3 taulua</span></div>
+        <div class="fact"><span class="v">47</span><span class="l">automaattista testiä</span></div>
+        <div class="fact"><span class="v">3,5 MB</span><span class="l">koko tietovaraston koko levyllä</span></div>
+        <div class="fact"><span class="v">~5 s</span><span class="l">poiminta ja rakennus päästä päähän</span></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div>
+        <h2>Kerrokset</h2>
+        <p class="sub sm">Jokainen kerros ottaa vastaan yhden muutostyypin</p>
+      </div>
+      <div class="tblwrap">
+        <table class="layers">
+          <thead><tr><th>Kerros</th><th>Tehtävä</th><th>Ottaa vastaan</th><th class="n">Kpl</th><th>Muoto</th></tr></thead>
+          <tbody>
+            <tr><td class="name">raw</td><td>Kopio lähteestä sellaisenaan. Ei suodatuksia eikä nimeämisiä.</td><td>—</td><td class="n">9</td><td>taulu</td></tr>
+            <tr><td class="name">staging</td><td>Sarakkeiden nimeäminen, tietotyypit, roskarivien suodatus. Yksi malli per lähdetaulu, ei liitoksia.</td><td>Lähdejärjestelmä muuttui</td><td class="n">9</td><td>näkymä</td></tr>
+            <tr><td class="name">intermediate</td><td>Liitokset ja liiketoimintalogiikka. Tässä useampi taulu kohtaa.</td><td>Laskentasääntö muuttui</td><td class="n">2</td><td>näkymä</td></tr>
+            <tr><td class="name">marts</td><td>Julkaistavat taulut: faktataulu treeneistä, dimensiot käyttäjistä ja haasteista.</td><td>Raportin tarve muuttui</td><td class="n">3</td><td>taulu</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="sub sm">
+        <strong>Näkymä</strong> on tallennettu kysely — mitään ei kirjoiteta levylle, vaan kysely
+        ajetaan silloin kun sitä tarvitaan. <strong>Taulu</strong> on tulos kirjoitettuna levylle.
+        Power BI -vastine: näkymä on DirectQuery, taulu on Import. Siksi 14 mallia mahtuu
+        3,5 megatavuun — vain kolme kohtaa tallentaa mitään.
+      </p>
+    </section>
+
+    <section class="card">
+      <div><h2>Työkalut ja perustelut</h2></div>
+      <div class="tblwrap">
+        <table class="layers">
+          <thead><tr><th>Valinta</th><th>Miksi</th></tr></thead>
+          <tbody>
+            <tr><td class="name">DuckDB</td><td>44 riviä dataa. Pilvivarasto olisi ollut ylimitoitus. Sama dbt-koodi siirtyy Snowflakeen tai BigQueryyn adapteria vaihtamalla.</td></tr>
+            <tr><td class="name">dbt</td><td>Riippuvuudet, testit ja dokumentaatio syntyvät samasta koodista. Riippuvuusgraafi ei voi vanhentua, koska se johdetaan viittauksista.</td></tr>
+            <tr><td class="name">Python</td><td>Poiminta Supabasen rajapinnasta. Sivutus ja virheiden käsittely.</td></tr>
+            <tr><td class="name">Dagster</td><td>Orkestrointi ja ajastus. Jokainen malli on seurattava kohde.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div>
+        <h2>Mitä testataan</h2>
+        <p class="sub sm">47 testiä, jotka ajetaan jokaisella rakennuskerralla</p>
+      </div>
+      <ul>
+        <li><strong>Avaimet</strong> — jokainen tunniste on uniikki eikä tyhjä</li>
+        <li><strong>Viite-eheys</strong> — jokaisen treenin käyttäjä on oikeasti olemassa</li>
+        <li><strong>Sallitut arvot</strong> — haasteen tila, jäsenen rooli, kokemustaso</li>
+        <li><strong>Brzyckin kaava</strong> — sovelluksen tallentama 1RM vastaa kaavaa 0,5 kg tarkkuudella</li>
+        <li><strong>Skeemavahti</strong> — 74 saraketta yhdeksässä taulussa; hälyttää jos lähdejärjestelmä muuttuu</li>
+        <li><strong>Lähtötason tarkistus</strong> — varoittaa, jos haasteen lähtötaso on nolla</li>
+      </ul>
+      <p class="sub sm">
+        Kaksi viimeistä ovat varoituksia, eivät virheitä. Ne kertovat sovelluksen ongelmasta,
+        eivätkä siksi saa estää mittariston päivittymistä.
+      </p>
+    </section>
+
+    <section class="card insight">
+      <div>
+        <p class="eyebrow">Rajaus</p>
+        <h2>Mitä testit eivät kerro</h2>
+      </div>
+      <p class="sub sm">
+        Testit tarkistavat rakenteen: onko avain uniikki, löytyykö viitattu rivi, onko arvo
+        sallitulla listalla. Ne eivät tiedä, mitä luvun <em>pitäisi</em> tarkoittaa. Siksi putki
+        tarvitsee erikseen täsmäytyksen sovellusta vastaan.
+      </p>
+    </section>
+  </div>
+
+  <footer>
+    <p><strong>Rakennettu:</strong> Supabase → Python → DuckDB → dbt → tämä sivu.
+      Orkestrointi Dagsterilla. Mittariston jokainen luku tulee <code>main_marts</code>-skeemasta.</p>
+    <p>Määritelmät <code>METRICS.md</code>, täsmäytyshistoria <code>RECONCILIATION.md</code>,
+      mallien kuvaukset ja riippuvuusgraafi <code>dbt docs</code>.
+      Sivu rakennetaan komennolla <code>python reports\build_dashboard.py</code>.</p>
+  </footer>
+</div>
+
+<div class="tip" id="tip"></div>
+
+<script id="pk-data" type="application/json">__PK_DATA__</script>
+
+<script>
+const D=JSON.parse(document.getElementById("pk-data").textContent);
+const fi=(v,d=1)=>Number(v).toLocaleString("fi-FI",{minimumFractionDigits:d,maximumFractionDigits:d});
+
+/* ---------- tabs ---------- */
+const tabs=[...document.querySelectorAll('[role="tab"]')];
+function select(tab){
+  tabs.forEach(t=>{
+    const on=t===tab;
+    t.setAttribute("aria-selected",on);
+    document.getElementById(t.getAttribute("aria-controls")).hidden=!on;
+  });
+  tab.focus();
+}
+tabs.forEach((t,i)=>{
+  t.addEventListener("click",()=>select(t));
+  t.addEventListener("keydown",e=>{
+    const d=e.key==="ArrowRight"?1:e.key==="ArrowLeft"?-1:0;
+    if(d){e.preventDefault();select(tabs[(i+d+tabs.length)%tabs.length]);}
+  });
+});
+
+/* ---------- header ---------- */
+const C=D.challenge;
+document.getElementById("h-name").textContent=C.name;
+document.getElementById("h-gen").textContent="Päivitetty "+D.generated;
+document.getElementById("h-vol").textContent=`${C.workouts} treeniä · ${C.members} jäsentä`;
+
+/* ---------- kpis ---------- */
+document.getElementById("kpis").innerHTML=`
+  <div class="card kpi lead"><p class="eyebrow">Nyt yhteensä</p>
+    <div><span class="v">${fi(C.current)}</span><span class="u">kg</span></div>
+    <p class="c">Jäsenten viimeisimpien treenien 1RM-summa</p></div>
+  <div class="card kpi"><p class="eyebrow">Tavoitteesta</p>
+    <div><span class="v">${fi(C.pct)}</span><span class="u">%</span></div>
+    <p class="c">${fi(C.current)} / ${fi(C.goal,0)} kg</p></div>
+  <div class="card kpi"><p class="eyebrow">Jäljellä</p>
+    <div><span class="v">${fi(C.remaining)}</span><span class="u">kg</span></div>
+    <p class="c">Nostettavaa tavoitteeseen</p></div>
+  <div class="card kpi"><p class="eyebrow">Aikaa</p>
+    <div><span class="v">${C.days}</span><span class="u">pv</span></div>
+    <p class="c">Päättyy ${C.end_date}</p></div>`;
+
+/* ---------- insight ---------- */
+const bestPct=D.best_total/C.goal*100, gap=D.best_total-C.current;
+document.getElementById("ins-h").textContent=`Määritelmä muuttaa tuloksen ${fi(gap)} kilolla`;
+document.getElementById("ins-cur").textContent=fi(C.current)+" kg";
+document.getElementById("ins-best").textContent=fi(D.best_total)+" kg";
+document.getElementById("ins-curpct").textContent=fi(C.pct)+" %";
+document.getElementById("ins-bestpct").textContent=fi(bestPct)+" %";
+
+/* ---------- risk ---------- */
+const idle=D.members.filter(m=>m.idle>7).map(m=>m.idle).sort((a,b)=>a-b);
+document.getElementById("risk-h").textContent=
+  `${C.members} jäsenestä ${C.active} on aktiivinen`;
+document.getElementById("risk-p").textContent=
+  `${idle.length} jäsentä ei ole kirjannut treeniä ${idle[0]}–${idle.at(-1)} päivään. ` +
+  `Aikaa on ${C.days} päivää ja nostettavaa ${fi(C.remaining)} kg. ` +
+  `Jos vain yksi jäsen treenaa, tavoite ei ole realistinen.`;
+
+/* ---------- chart ---------- */
+const T=D.trend;
+const vals=T.map(p=>p[1]);
+const peak=T.reduce((a,b)=>b[1]>a[1]?b:a);
+document.getElementById("chart-sub").textContent=
+  `Huippu ${fi(peak[1])} kg saavutettiin ${new Date(peak[0]).toLocaleDateString("fi-FI")}. `+
+  `Viimeisin lukema ${fi(T.at(-1)[1])} kg.`;
+
+const W=900,H=330,PL=54,PR=20,PT=18,PB=40;
+const YMAX=Math.ceil(Math.max(C.goal,...vals)/10)*10+10;
+const YMIN=Math.floor(Math.min(...vals)/10)*10-10;
+const t0=new Date(T[0][0]).getTime(), t1=new Date(T.at(-1)[0]).getTime();
+const X=d=>PL+(new Date(d).getTime()-t0)/(t1-t0)*(W-PL-PR);
+const Y=v=>PT+(YMAX-v)/(YMAX-YMIN)*(H-PT-PB);
+
+let s='';
+const step=YMAX-YMIN>80?20:10;
+for(let v=Math.ceil(YMIN/step)*step; v<=YMAX; v+=step){
+  s+=`<line class="grid" x1="${PL}" x2="${W-PR}" y1="${Y(v)}" y2="${Y(v)}"/>`;
+  s+=`<text class="axis-t" x="${PL-9}" y="${Y(v)+4}" text-anchor="end">${v}</text>`;}
+s+=`<line class="goal" x1="${PL}" x2="${W-PR}" y1="${Y(C.goal)}" y2="${Y(C.goal)}"/>`;
+s+=`<text class="anno" x="${W-PR}" y="${Y(C.goal)-8}" text-anchor="end">Tavoite ${fi(C.goal,0)} kg</text>`;
+
+const months=["Tammi","Helmi","Maalis","Huhti","Touko","Kesä","Heinä","Elo","Syys","Loka","Marras","Joulu"];
+const seen=new Set();
+T.forEach(([d])=>{const dt=new Date(d),k=dt.getFullYear()+"-"+dt.getMonth();
+  if(!seen.has(k)&&dt.getDate()<15){seen.add(k);
+    s+=`<text class="axis-t" x="${X(d)}" y="${H-14}" text-anchor="middle">${months[dt.getMonth()]}</text>`;}});
+
+const pts=T.map(([d,v])=>[X(d),Y(v)]);
+const line=pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+s+=`<path class="area" d="${line} L${pts.at(-1)[0].toFixed(1)} ${H-PB} L${pts[0][0].toFixed(1)} ${H-PB} Z"/>`;
+s+=`<path class="series" d="${line}"/>`;
+s+=`<circle class="peakpt" cx="${X(peak[0])}" cy="${Y(peak[1])}" r="5"/>`;
+s+=`<text class="anno" x="${X(peak[0])+10}" y="${Y(peak[1])-8}">Huippu ${fi(peak[1])}</text>`;
+s+=`<circle class="endpt" cx="${pts.at(-1)[0]}" cy="${pts.at(-1)[1]}" r="5.5"/>`;
+s+=`<text class="anno" x="${pts.at(-1)[0]-8}" y="${pts.at(-1)[1]+20}" text-anchor="end">${fi(T.at(-1)[1])}</text>`;
+s+=`<line class="cross" id="cx" y1="${PT}" y2="${H-PB}"/>`;
+T.forEach(([d,v],i)=>s+=`<circle class="hitpt" cx="${pts[i][0]}" cy="${pts[i][1]}" r="12" data-d="${d}" data-v="${v}"/>`);
+document.getElementById("chart").innerHTML=s;
+
+const tip=document.getElementById("tip"),cx=document.getElementById("cx");
+document.querySelectorAll(".hitpt").forEach(c=>{
+  const show=()=>{const r=c.getBoundingClientRect();
+    tip.innerHTML=`${new Date(c.dataset.d).toLocaleDateString("fi-FI")}<br><b>${fi(+c.dataset.v)} kg</b>`;
+    tip.style.left=(r.left+r.width/2)+"px";tip.style.top=r.top+"px";tip.style.opacity=1;
+    cx.setAttribute("x1",c.getAttribute("cx"));cx.setAttribute("x2",c.getAttribute("cx"));
+    cx.style.opacity=.6;};
+  const hide=()=>{tip.style.opacity=0;cx.style.opacity=0};
+  c.addEventListener("mouseenter",show);c.addEventListener("focus",show);
+  c.addEventListener("mouseleave",hide);c.addEventListener("blur",hide);
+  c.setAttribute("tabindex","0");
+});
+
+/* ---------- flow step tooltips ---------- */
+document.querySelectorAll(".step[data-tip]").forEach(el=>{
+  const show=()=>{const r=el.getBoundingClientRect();
+    tip.textContent=el.dataset.tip;
+    tip.classList.add("wide");
+    tip.style.left=Math.min(Math.max(r.left+r.width/2,175),window.innerWidth-175)+"px";
+    tip.style.top=r.top+"px";
+    tip.style.opacity=1;};
+  const hide=()=>{tip.style.opacity=0;tip.classList.remove("wide")};
+  el.addEventListener("mouseenter",show); el.addEventListener("focus",show);
+  el.addEventListener("mouseleave",hide); el.addEventListener("blur",hide);
+});
+
+/* ---------- members ---------- */
+const BW=150,BH=16;
+const BMAX=Math.max(...D.members.map(m=>Math.max(m.cur,m.best,m.tgt)))*1.06;
+document.getElementById("members").innerHTML=D.members.map(m=>{
+  const px=v=>(v/BMAX*BW).toFixed(1);
+  const st=m.idle<=7?["p-ok","Aktiivinen"]:m.idle<=30?["p-warn","Hiipuu"]:["p-risk","Riskissä"];
+  return `<tr>
+    <td class="name">${m.n}</td>
+    <td><svg class="bullet" viewBox="0 0 ${BW} ${BH}" role="img"
+         aria-label="${m.n}: nykyinen ${fi(m.cur)} kg, ennätys ${fi(m.best)} kg, tavoite ${fi(m.tgt,0)} kg">
+        <rect class="b-track" x="0" y="4" width="${BW}" height="${BH-8}" rx="2"/>
+        <rect class="b-fill"  x="0" y="4" width="${px(m.cur)}" height="${BH-8}" rx="2"/>
+        <line class="b-best"   x1="${px(m.best)}" x2="${px(m.best)}" y1="1" y2="${BH-1}"/>
+        <line class="b-target" x1="${px(m.tgt)}"  x2="${px(m.tgt)}"  y1="0" y2="${BH}"/>
+      </svg></td>
+    <td class="n">${fi(m.cur)}</td>
+    <td class="n">${fi(m.best)}</td>
+    <td class="n">${fi(m.tgt,0)}</td>
+    <td class="n">${m.w}</td>
+    <td>${m.last}</td>
+    <td><span class="pill ${st[0]}">${st[1]}</span></td>
+  </tr>`;}).join("");
+</script>
