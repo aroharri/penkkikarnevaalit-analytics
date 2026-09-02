@@ -2,15 +2,22 @@
 
 End-to-end analytics pipeline for [Penkkikarnevaalit](https://penkkikarnevaalit.fi) — a social bench press tracking app where friend groups compete in collective strength challenges.
 
-This project demonstrates a production-grade analytics engineering workflow: extraction from a live Supabase backend, transformation through a three-layer dbt model architecture, orchestration with Dagster, and a local DuckDB warehouse that anyone can clone and run.
+An ELT pipeline over two sources: the app's live Supabase database and the Open-Meteo weather API. Transformation runs through a three-layer dbt architecture into a local DuckDB warehouse, orchestrated with Dagster, and published as a static dashboard.
+
+Every number on the dashboard is reconciled against what the application shows its users. That reconciliation is the point — the first version passed all 47 tests while reporting a figure that was 78 percentage points wrong.
 
 ## Architecture
 
 ```
-Supabase (prod)  →  Python extract  →  DuckDB (raw)  →  dbt  →  DuckDB (staging/intermediate/marts)
-                         ↑                                 ↑
-                     Dagster orchestrates the full pipeline
+Supabase (prod) ──┐
+                  ├─→  Python extract  →  DuckDB (raw)  →  dbt  →  marts  →  dashboard.html
+Open-Meteo API ───┘
+                              ↑                            ↑                      ↑
+                        Dagster orchestrates every step as an asset
 ```
+
+The weather extract reads the workout date range from DuckDB and fetches exactly
+that window, so it genuinely depends on the Supabase extract having run first.
 
 ### Why these tools?
 
@@ -18,8 +25,8 @@ Supabase (prod)  →  Python extract  →  DuckDB (raw)  →  dbt  →  DuckDB (
 |------|-----|
 | **DuckDB** | Local, zero-config warehouse. No cloud account needed. Portable — anyone can clone this repo and query the data. |
 | **dbt (dbt-duckdb)** | Industry-standard transformation layer. Schema tests, documentation, and lineage built in. |
-| **Dagster** | Modern orchestration with native dbt integration. Asset-based, not task-based — each model is an observable asset. |
-| **Python** | Extraction script using Supabase SDK. Handles pagination and logging. |
+| **Dagster** | Asset-based orchestration, scheduling and run history. Runs each step through `PipesSubprocessClient` rather than `dagster-dbt`, whose metadata caps `Requires-Python <3.14` ([#33903](https://github.com/dagster-io/dagster/issues/33903)). Trade-off: the dbt run is one asset instead of fifteen. |
+| **Python** | Extraction from the Supabase SDK and the Open-Meteo REST API. Handles pagination, empty tables and loud failure. |
 
 ## Data Lineage
 
@@ -110,8 +117,9 @@ Raw source cleaning: renames, type casts, filters out invalid data. Materialized
 | `stg_user_profiles` | `raw.user_profiles` | Body weight, height, experience level |
 | `stg_activities` | `raw.activities` | Activity feed events |
 | `stg_kudos` | `raw.kudos_reactions` | Emoji reactions on activities |
-| `stg_comments` | `raw.comments` | Text comments on activities |
+| `stg_comments` | `raw.activity_comments` | Text comments on activities |
 | `stg_comment_reactions` | `raw.comment_reactions` | Emoji reactions on comments |
+| `stg_weather` | `raw.weather` | Second source. Daily temperature and precipitation, plus analytics-owned temperature bands |
 
 ### Intermediate (`models/intermediate/`)
 Business logic and joins. Materialized as **views**.
@@ -206,10 +214,16 @@ python extract/supabase_to_duckdb.py   # Extract
 dbt run                                 # Transform
 dbt test                                # Validate
 
-# Option 2: Run via Dagster (recommended)
-dagster dev  # reads module_name from pyproject.toml
-# Then open http://localhost:3000 and materialize all assets
+# Option 2: The whole pipeline in one command
+.
+efresh.cmd                          # extract, weather, dbt build, dashboard
+
+# Option 3: Via Dagster, with a UI and run history
+.\dagster.cmd                          # then open http://localhost:3000
 ```
+
+`refresh.cmd` and `dagster.cmd` wrap PowerShell so they run regardless of the
+machine's execution policy. Both call the same four scripts; neither calls the other.
 
 ### Explore the Data
 
@@ -257,45 +271,35 @@ dbt test --select test_type:singular  # Run only singular tests
 ```
 penkkikarnevaalit-analytics/
 ├── extract/
-│   ├── supabase_to_duckdb.py      # Supabase → DuckDB extraction
-│   └── seed_dev_data.py           # Synthetic fixture — no credentials needed
+│   ├── supabase_to_duckdb.py       # Source 1: Supabase → raw
+│   ├── weather_to_duckdb.py        # Source 2: Open-Meteo → raw
+│   ├── raw_schema.py               # Column lists for raw, shared by both paths
+│   └── seed_dev_data.py            # Synthetic fixture — no credentials needed
 ├── models/
-│   ├── staging/
-│   │   ├── _sources.yml            # Source definitions + column docs
-│   │   ├── _staging__models.yml    # Model docs + tests
-│   │   ├── stg_users.sql
-│   │   ├── stg_workouts.sql
-│   │   ├── stg_challenges.sql
-│   │   ├── stg_challenge_members.sql
-│   │   ├── stg_user_profiles.sql
-│   │   ├── stg_activities.sql
-│   │   ├── stg_kudos.sql
-│   │   ├── stg_comments.sql
-│   │   └── stg_comment_reactions.sql
-│   ├── intermediate/
-│   │   ├── _intermediate__models.yml
-│   │   ├── int_workout_metrics.sql
-│   │   └── int_member_progress.sql
-│   └── marts/
-│       ├── _marts__models.yml
-│       ├── fct_workouts.sql
-│       ├── dim_users.sql
-│       └── dim_challenges.sql
-├── orchestration/
-│   ├── __init__.py
-│   └── assets.py                   # Dagster asset definitions
-├── analyses/
-│   └── ui_reconciliation.sql       # Model numbers vs. the app, side by side
+│   ├── staging/                    # 10 views, one per source table
+│   ├── intermediate/               # 2 views, joins and business logic
+│   └── marts/                      # 3 tables: fct_workouts, dim_users, dim_challenges
 ├── tests/
-│   ├── assert_raw_schema_matches_production.sql
-│   ├── assert_brzycki_1rm_accuracy.sql
-│   └── assert_challenge_baseline_is_set.sql
+│   ├── assert_brzycki_1rm_accuracy.sql          # App's 1RM vs the formula
+│   ├── assert_challenge_baseline_is_set.sql     # Surfaces an upstream app defect
+│   └── assert_raw_schema_matches_production.sql # 74 columns, guards schema drift
+├── analyses/
+│   └── ui_reconciliation.sql       # Pipeline figures in the shape the app shows them
+├── reports/
+│   ├── _template.html              # Dashboard template, __PK_DATA__ placeholder
+│   ├── build_dashboard.py          # Reads marts, fills the template
+│   └── haastemittaristo.html       # Generated. Gitignored: contains member names
+├── orchestration/
+│   └── assets.py                   # Four Dagster assets via PipesSubprocessClient
+├── refresh.cmd / refresh.ps1       # Whole pipeline, one command
+├── dagster.cmd                     # Dagster UI on :3000
+├── RECONCILIATION.md               # Metric-by-metric agreement with the app
+├── PLAYBOOK.md                     # The method, reusable on other projects
 ├── dbt_project.yml
 ├── profiles.yml
 ├── pyproject.toml
 ├── .env.example
 ├── .gitignore
-├── RECONCILIATION.md               # Model ↔ app number map and snapshots
 └── README.md
 ```
 
