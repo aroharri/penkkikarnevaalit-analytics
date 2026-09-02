@@ -123,7 +123,7 @@
   .liftswrap thead th[data-dir="asc"]::after{content:"▲";opacity:.9}
   .liftswrap thead th[data-dir="desc"]::after{content:"▼";opacity:.9}
   .liftswrap thead th:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
-  .pr{display:inline-block;margin-left:.4rem;font-family:"IBM Plex Mono",monospace;
+  .pr{display:inline-block;margin-left:.4rem;cursor:help;font-family:"IBM Plex Mono",monospace;
     font-size:.6rem;letter-spacing:.06em;color:var(--ok);border:1px solid var(--ok);
     border-radius:3px;padding:0 .25rem;vertical-align:1px}
   th,td{text-align:left;padding:.62rem .7rem;border-bottom:1px solid var(--rule);vertical-align:top}
@@ -403,6 +403,9 @@
       <div>
         <h2>Kaikki nostot</h2>
         <p class="sub sm" id="lifts-sub">—</p>
+        <p class="sub sm"><span class="pr">PR</span> tarkoittaa nostoa, joka oli
+        ennätys <strong>sillä hetkellä kun se kirjattiin</strong> — ei sitä, että
+        se olisi tekijänsä paras. Vie hiiri merkinnän päälle nähdäksesi mitä se ylitti.</p>
       </div>
       <div class="tblwrap liftswrap">
         <table id="lifts-t">
@@ -420,8 +423,7 @@
       </div>
       <p class="sub sm">
         Lähde <code>main_marts.fct_workouts</code>. Yksi rivi per kirjattu sarja.
-        Klikkaa saraketta lajitellaksesi. <span class="pr">PR</span> merkitsee
-        nostoa, joka oli tekijänsä siihenastinen ennätys.
+        Klikkaa saraketta lajitellaksesi.
       </p>
     </section>
   </div>
@@ -685,12 +687,15 @@ function drawLifts(){
     <td class="name">${w.who}</td>
     <td class="n">${w.reps}</td>
     <td class="n">${fi(w.kg)} kg</td>
-    <td class="n">${fi(w.rm)} kg${w.pr?' <span class="pr">PR</span>':''}</td>
+    <td class="n">${fi(w.rm)} kg${w.pr?` <span class="pr" tabindex="0" data-tip="${
+      w.prev==null ? "Ensimmäinen kirjattu nosto — siksi ennätys."
+                   : `Ennätys: ylitti aiemman parhaan ${fi(w.prev)} kg.`}">PR</span>`:''}</td>
   </tr>`).join("");
   document.querySelectorAll("#lifts-t thead th").forEach(th=>{
     if(th.dataset.k===lkey) th.dataset.dir = ldir===1?"asc":"desc";
     else th.removeAttribute("data-dir");
   });
+  wirePrTips();
 }
 document.querySelectorAll("#lifts-t thead th").forEach(th=>{
   const go=()=>{const k=th.dataset.k;
@@ -700,6 +705,20 @@ document.querySelectorAll("#lifts-t thead th").forEach(th=>{
   th.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go();}});
 });
 drawLifts();
+
+/* ---------- PR-merkinnan selite ---------- */
+function wirePrTips(){
+  document.querySelectorAll(".pr[data-tip]").forEach(el=>{
+    if(el.dataset.wired) return; el.dataset.wired="1";
+    const show=()=>{const r=el.getBoundingClientRect();
+      tip.textContent=el.dataset.tip; tip.classList.add("wide");
+      tip.style.left=Math.min(Math.max(r.left+r.width/2,175),window.innerWidth-175)+"px";
+      tip.style.top=r.top+"px"; tip.style.opacity=1;};
+    const hide=()=>{tip.style.opacity=0;tip.classList.remove("wide")};
+    el.addEventListener("mouseenter",show); el.addEventListener("focus",show);
+    el.addEventListener("mouseleave",hide); el.addEventListener("blur",hide);
+  });
+}
 
 /* ---------- members ---------- */
 const BW=150,BH=16;
