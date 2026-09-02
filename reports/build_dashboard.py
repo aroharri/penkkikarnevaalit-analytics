@@ -44,6 +44,13 @@ where challenge_name = ?
 order by current_1rm_kg desc nulls last
 """
 
+# Kaikki nostot uusin ensin. Yksi rivi per kirjattu sarja.
+WORKOUTS_SQL = """
+select performed_at, user_name, reps, weight_kg, estimated_1rm_kg, is_pr
+from main_marts.fct_workouts
+order by performed_at desc
+"""
+
 # Team total on each day a workout was logged: every member's most recent 1RM
 # as of that date, summed. Members with no workout yet contribute nothing —
 # the same rule the app applies.
@@ -86,6 +93,8 @@ def build_payload(con: duckdb.DuckDBPyConnection) -> dict:
     if not trend:
         raise RuntimeError(f"No workout history found for challenge {name!r}.")
 
+    workout_rows = con.execute(WORKOUTS_SQL).fetchall()
+
     payload = {
         "generated": datetime.now().strftime("%-d.%-m.%Y %H:%M")
         if os.name != "nt"
@@ -117,6 +126,21 @@ def build_payload(con: duckdb.DuckDBPyConnection) -> dict:
             for m in member_rows
         ],
         "trend": [[d.isoformat(), float(t)] for d, t in trend],
+        "workouts": [
+            {
+                "ts": w[0].strftime("%-d.%-m.%Y %H:%M")
+                if os.name != "nt"
+                else f"{w[0].day}.{w[0].month}.{w[0].year} {w[0]:%H:%M}",
+                "who": w[1],
+                "reps": int(w[2]),
+                "kg": float(w[3]),
+                "rm": float(w[4]),
+                "pr": bool(w[5]),
+                # ISO-muoto lajittelua varten, ei nayteta
+                "sort": w[0].isoformat(),
+            }
+            for w in workout_rows
+        ],
     }
     return payload
 
@@ -141,6 +165,7 @@ def main():
     logger.info(f"  {c['current']} / {c['goal']} kg = {c['pct']} %")
     logger.info(f"  paras koskaan {payload['best_total']} kg")
     logger.info(f"  {len(payload['members'])} jäsentä, {len(payload['trend'])} trendipistettä")
+    logger.info(f"  {len(payload['workouts'])} nostoa taulukossa")
     logger.info(f"  {c['active']}/{c['members']} aktiivista, {c['days']} päivää jäljellä")
 
 
