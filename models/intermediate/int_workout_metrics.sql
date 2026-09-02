@@ -16,6 +16,13 @@ profiles as (
     select * from {{ ref('stg_user_profiles') }}
 ),
 
+-- Toinen lähde. Liitos päivämäärällä, ei avaimella: sää on ominaisuus
+-- päivällä, ei treenillä. left join, koska säädata voi loppua ennen
+-- viimeisintä treeniä (arkistorajapinta laahaa muutaman päivän).
+weather as (
+    select * from {{ ref('stg_weather') }}
+),
+
 workout_with_context as (
     select
         w.workout_id,
@@ -78,6 +85,7 @@ workout_with_context as (
     from workouts w
     left join users u on w.user_id = u.user_id
     left join profiles p on w.user_id = p.user_id
+    left join weather wx on w.workout_date = wx.weather_date
 )
 
 select * from workout_with_context

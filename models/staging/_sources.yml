@@ -201,3 +201,29 @@ sources:
             description: FK to users.id — who reacted
           - name: emoji
             description: The emoji used
+
+  - name: open_meteo
+    description: >
+      Toinen lähde: päivittäiset säähavainnot Open-Meteon avoimesta
+      arkistorajapinnasta. Ei API-avainta, ei Supabasea.
+
+      Sijainti on kiinteä (Sipoo, 60.29 / 25.26), koska sovellus tallentaa
+      salin vain vapaana tekstinä eikä koordinaatteja. Approksimaatio.
+
+      Haettava jakso johdetaan raw.workouts-taulun päivämääristä, joten
+      tämä poiminta riippuu Supabase-poiminnasta.
+    schema: raw
+    tables:
+      - name: weather
+        description: Yksi rivi per päivä.
+        columns:
+          - name: weather_date
+            description: Havaintopäivä
+          - name: temperature_mean_c
+            description: Vuorokauden keskilämpötila, °C
+          - name: temperature_min_c
+            description: Vuorokauden alin lämpötila, °C
+          - name: precipitation_mm
+            description: Sademäärä, mm
+          - name: snowfall_cm
+            description: Lumisade, cm

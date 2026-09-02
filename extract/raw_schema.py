@@ -64,4 +64,11 @@ RAW_SCHEMA = {
         ("id", "VARCHAR"), ("comment_id", "VARCHAR"), ("user_id", "VARCHAR"),
         ("emoji", "VARCHAR"), ("created_at", "TIMESTAMP"),
     ],
+    # Toinen lahde: Open-Meteo. Ei Supabasesta, joten skeemadriftin vahti
+    # ei koske tata - sen sarakkeet maaraa tama tiedosto, ei tuotantokanta.
+    "weather": [
+        ("weather_date", "DATE"), ("temperature_mean_c", "DOUBLE"),
+        ("temperature_min_c", "DOUBLE"), ("precipitation_mm", "DOUBLE"),
+        ("snowfall_cm", "DOUBLE"), ("latitude", "DOUBLE"), ("longitude", "DOUBLE"),
+    ],
 }

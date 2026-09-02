@@ -101,6 +101,9 @@ actual as (
     select table_name, column_name
     from information_schema.columns
     where table_schema = 'raw'
+      -- weather tulee Open-Meteosta, ei Supabasesta. Sen sarakkeet maarittelee
+      -- extract/raw_schema.py, joten tuotantoskeemaan vertaaminen ei koske sita.
+      and table_name <> 'weather'
 ),
 
 missing as (

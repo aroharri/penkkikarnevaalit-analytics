@@ -13,7 +13,7 @@ $t0 = Get-Date
 
 function Step($n, $text) {
     Write-Host ""
-    Write-Host "[$n/3] $text" -ForegroundColor Cyan
+    Write-Host "[$n/4] $text" -ForegroundColor Cyan
     Write-Host ("-" * 60)
 }
 
@@ -21,11 +21,15 @@ Step 1 "Poiminta: Supabase -> DuckDB raw"
 & $py extract\supabase_to_duckdb.py
 if ($LASTEXITCODE -ne 0) { Write-Host "Poiminta epaonnistui" -ForegroundColor Red; exit 1 }
 
-Step 2 "Muunnokset ja testit: dbt build"
+Step 2 "Toinen lahde: Open-Meteo -> DuckDB raw"
+& $py extract\weather_to_duckdb.py
+if ($LASTEXITCODE -ne 0) { Write-Host "Saapoiminta epaonnistui" -ForegroundColor Red; exit 1 }
+
+Step 3 "Muunnokset ja testit: dbt build"
 & $dbt build --profiles-dir .
 if ($LASTEXITCODE -ne 0) { Write-Host "dbt build epaonnistui" -ForegroundColor Red; exit 1 }
 
-Step 3 "Mittaristo: marts -> HTML"
+Step 4 "Mittaristo: marts -> HTML"
 & $py reports\build_dashboard.py
 if ($LASTEXITCODE -ne 0) { Write-Host "Mittariston rakennus epaonnistui" -ForegroundColor Red; exit 1 }
 

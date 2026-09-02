@@ -1,9 +1,9 @@
 """
 Dagster-orkestrointi Penkkikarnevaalit-analytiikalle.
 
-    raw_supabase  ->  dbt_models  ->  haastemittaristo
+    raw_supabase  ->  raw_weather  ->  dbt_models  ->  haastemittaristo
 
-Kolme assettia ketjussa. Jokainen ajaa oman komentonsa PipesSubprocessClientilla,
+Nelja assettia ketjussa. Jokainen ajaa oman komentonsa PipesSubprocessClientilla,
 joka on Dagsterin dokumentoitu tapa ajaa työtä tämän prosessin ulkopuolella.
 
 Miksi ei dagster-dbt:
@@ -56,9 +56,29 @@ def raw_supabase(
 @dg.asset(
     deps=[raw_supabase],
     group_name="penkkikarnevaalit",
+    compute_kind="python",
+    description=(
+        "Toinen lahde: saahavainnot Open-Meteosta. Riippuu raw_supabasesta, "
+        "koska haettava jakso johdetaan treenien paivamaarista."
+    ),
+)
+def raw_weather(
+    context: dg.AssetExecutionContext,
+    pipes: dg.PipesSubprocessClient,
+) -> dg.MaterializeResult:
+    return pipes.run(
+        command=[PYTHON, str(PROJECT_DIR / "extract" / "weather_to_duckdb.py")],
+        cwd=str(PROJECT_DIR),
+        context=context,
+    ).get_materialize_result()
+
+
+@dg.asset(
+    deps=[raw_weather],
+    group_name="penkkikarnevaalit",
     compute_kind="dbt",
     description=(
-        "dbt build: 14 mallia kolmessa kerroksessa ja 47 testiä. "
+        "dbt build: 15 mallia kolmessa kerroksessa ja 48 testiä. "
         "Ajojärjestyksen päättelee dbt itse ref()-viittauksista."
     ),
 )
@@ -104,7 +124,7 @@ aamuajo = dg.ScheduleDefinition(
 )
 
 defs = dg.Definitions(
-    assets=[raw_supabase, dbt_models, haastemittaristo],
+    assets=[raw_supabase, raw_weather, dbt_models, haastemittaristo],
     jobs=[paivitys],
     schedules=[aamuajo],
     resources={"pipes": dg.PipesSubprocessClient()},
