@@ -1,4 +1,5 @@
 <img width="1500" height="500" alt="POH iso" src="https://github.com/user-attachments/assets/cd4d62ee-2c53-4b19-8f91-5032688ae536" />
+
 # Penkkikarnevaalit Analytics
 
 End-to-end analytics pipeline for [Penkkikarnevaalit](https://penkkikarnevaalit.fi) — a social bench press tracking app where friend groups compete in collective strength challenges.
