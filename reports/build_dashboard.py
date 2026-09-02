@@ -47,6 +47,7 @@ order by current_1rm_kg desc nulls last
 # Kaikki nostot uusin ensin. Yksi rivi per kirjattu sarja.
 WORKOUTS_SQL = """
 select performed_at, user_name, reps, weight_kg, estimated_1rm_kg, is_pr,
+       temperature_mean_c, temperature_band,
        max(estimated_1rm_kg) over (
            partition by user_id order by performed_at
            rows between unbounded preceding and 1 preceding
@@ -141,7 +142,10 @@ def build_payload(con: duckdb.DuckDBPyConnection) -> dict:
                 "rm": float(w[4]),
                 "pr": bool(w[5]),
                 # Mika ennatys oli ennen tata nostoa. None = ensimmainen kirjattu.
-                "prev": float(w[6]) if w[6] is not None else None,
+                "prev": float(w[8]) if w[8] is not None else None,
+                # Saa treenipaivana. None kun arkistorajapinta ei viela kata paivaa.
+                "t": float(w[6]) if w[6] is not None else None,
+                "band": w[7],
                 # ISO-muoto lajittelua varten, ei nayteta
                 "sort": w[0].isoformat(),
             }

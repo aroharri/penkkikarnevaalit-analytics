@@ -43,6 +43,12 @@ workout_with_context as (
         p.body_weight_kg,
         p.experience_level,
 
+        -- Sää treenipäivänä (Open-Meteo). NULL viimeisimmiltä päiviltä:
+        -- arkistorajapinta laahaa noin kuusi päivää nykyhetkestä.
+        wx.temperature_mean_c,
+        wx.temperature_band,
+        wx.is_freezing,
+
         -- Is this a personal record at time of logging?
         -- First workout is always a PR. After that, strictly greater than previous best.
         case

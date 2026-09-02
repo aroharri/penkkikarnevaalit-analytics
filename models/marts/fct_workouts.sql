@@ -18,6 +18,11 @@ select
     reps,
     estimated_1rm_kg,
     experience_level,
+
+    -- Sää treenipäivänä. Analytiikan oma lisäys toisesta lähteestä,
+    -- ei sovelluksesta. NULL viimeisimmiltä päiviltä.
+    temperature_mean_c,
+    temperature_band,
     is_pr,
     running_best_1rm_kg,
     round(_1rm_change_kg, 1) as _1rm_change_kg,

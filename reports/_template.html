@@ -114,7 +114,7 @@
   .recon table{min-width:520px}
   .layers{min-width:560px}
   .metrics{min-width:660px}
-  #lifts-t{min-width:560px}
+  #lifts-t{min-width:660px}
   .liftswrap{max-height:26rem;overflow:auto}
   .liftswrap thead th{position:sticky;top:0;background:var(--surface);z-index:2;
     cursor:pointer;user-select:none;white-space:nowrap}
@@ -123,6 +123,7 @@
   .liftswrap thead th[data-dir="asc"]::after{content:"▲";opacity:.9}
   .liftswrap thead th[data-dir="desc"]::after{content:"▼";opacity:.9}
   .liftswrap thead th:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .na{color:var(--ink-mute);font-style:italic;cursor:help}
   .pr{display:inline-block;margin-left:.4rem;cursor:help;font-family:"IBM Plex Mono",monospace;
     font-size:.6rem;letter-spacing:.06em;color:var(--ok);border:1px solid var(--ok);
     border-radius:3px;padding:0 .25rem;vertical-align:1px}
@@ -415,6 +416,7 @@
               <th class="n" data-k="reps" tabindex="0" role="button">Toistot</th>
               <th class="n" data-k="kg" tabindex="0" role="button">Paino</th>
               <th class="n" data-k="rm" tabindex="0" role="button">1RM</th>
+              <th class="n" data-k="t" tabindex="0" role="button">Sää</th>
             </tr>
           </thead>
           <tbody id="lifts"></tbody>
@@ -422,7 +424,8 @@
       </div>
       <p class="sub sm">
         Lähde <code>main_marts.fct_workouts</code>. Yksi rivi per kirjattu sarja.
-        Klikkaa saraketta lajitellaksesi.
+        Klikkaa saraketta lajitellaksesi. Sää tulee toisesta lähteestä
+        (Open-Meteo) ja liittyy riviin treenipäivän perusteella.
       </p>
     </section>
   </div>
@@ -687,6 +690,9 @@ let lkey="sort", ldir=-1;
 function drawLifts(){
   const rows=[...L].sort((a,b)=>{
     const x=a[lkey], y=b[lkey];
+    if(x==null && y==null) return 0;
+    if(x==null) return 1;          // puuttuvat aina loppuun, suunnasta riippumatta
+    if(y==null) return -1;
     return (typeof x==="string" ? x.localeCompare(y,"fi") : x-y)*ldir;
   });
   document.getElementById("lifts").innerHTML=rows.map(w=>`<tr>
@@ -696,12 +702,25 @@ function drawLifts(){
     <td class="n">${fi(w.kg)} kg</td>
     <td class="n">${fi(w.rm)} kg${isBest(w)?` <span class="pr" tabindex="0" data-tip="${
       w.who}n kaikkien aikojen paras tulos.">PR</span>`:''}</td>
+    <td class="n">${w.t==null
+      ? '<span class="na" tabindex="0" data-tip="Säädataa ei vielä ole: Open-Meteon arkistorajapinta laahaa noin kuusi päivää nykyhetkestä.">ei tietoa</span>'
+      : `${fi(w.t)} °C`}</td>
   </tr>`).join("");
   document.querySelectorAll("#lifts-t thead th").forEach(th=>{
     if(th.dataset.k===lkey) th.dataset.dir = ldir===1?"asc":"desc";
     else th.removeAttribute("data-dir");
   });
   wirePrTips();
+  document.querySelectorAll(".na[data-tip]").forEach(el=>{
+    if(el.dataset.wired) return; el.dataset.wired="1";
+    const show=()=>{const r=el.getBoundingClientRect();
+      tip.textContent=el.dataset.tip; tip.classList.add("wide");
+      tip.style.left=Math.min(Math.max(r.left+r.width/2,175),window.innerWidth-175)+"px";
+      tip.style.top=r.top+"px"; tip.style.opacity=1;};
+    const hide=()=>{tip.style.opacity=0;tip.classList.remove("wide")};
+    el.addEventListener("mouseenter",show); el.addEventListener("focus",show);
+    el.addEventListener("mouseleave",hide); el.addEventListener("blur",hide);
+  });
 }
 document.querySelectorAll("#lifts-t thead th").forEach(th=>{
   const go=()=>{const k=th.dataset.k;
