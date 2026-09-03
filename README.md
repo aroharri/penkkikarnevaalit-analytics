@@ -307,4 +307,4 @@ penkkikarnevaalit-analytics/
 
 ## Author
 
-**Harri Aro** — [harriaro.fi](https://harriaro.fi)
+**Harri Aro**
